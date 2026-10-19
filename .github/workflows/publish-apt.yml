@@ -7,6 +7,7 @@ on:
     paths:
       - 'debs/*.deb'
       - 'CydiaIcon.png'
+      - 'index.html'
       - '.github/workflows/publish-apt.yml'
   schedule:
     - cron: '17 * * * *'
