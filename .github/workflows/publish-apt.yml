@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'debs/*.deb'
+      - 'CydiaIcon.png'
       - '.github/workflows/publish-apt.yml'
   workflow_dispatch:
 
@@ -49,6 +50,7 @@ jobs:
           dpkg-scanpackages --multiversion debs /dev/null > _site/Packages
           gzip -9c _site/Packages > _site/Packages.gz
           cp index.html _site/index.html
+          cp CydiaIcon.png _site/CydiaIcon.png
           touch _site/.nojekyll
 
           architectures=$(
