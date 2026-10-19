@@ -8,6 +8,8 @@ on:
       - 'debs/*.deb'
       - 'CydiaIcon.png'
       - '.github/workflows/publish-apt.yml'
+  schedule:
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -40,14 +42,45 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           packages=(debs/*.deb)
-          if ((${#packages[@]} == 0)); then
+          if (("${#packages[@]}" == 0)); then
             echo "No .deb packages found directly in debs/" >&2
             exit 1
           fi
 
           mkdir -p _site/debs
           cp "${packages[@]}" _site/debs/
-          dpkg-scanpackages --multiversion debs /dev/null > _site/Packages
+
+          release_json=$(mktemp)
+          trap 'rm -f "$release_json"' EXIT
+          curl -fsSL \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            https://api.github.com/repos/poopterm-labs/poopterm/releases/latest \
+            -o "$release_json"
+          asset_name=$(jq -r '.assets[] | select(.name | startswith("poopterm_") and endswith("_amd64.deb")) | .name' "$release_json" | head -n 1)
+          if [[ -n "$asset_name" ]]; then
+            if [[ ! "$asset_name" =~ ^poopterm_[0-9A-Za-z.+~-]+_amd64\.deb$ ]]; then
+              echo "Unexpected Poopterm package asset name: $asset_name" >&2
+              exit 1
+            fi
+            asset_url=$(jq -r --arg name "$asset_name" '.assets[] | select(.name == $name) | .browser_download_url' "$release_json" | head -n 1)
+            if [[ "$asset_url" != https://github.com/* ]]; then
+              echo "Unexpected Poopterm package asset URL" >&2
+              exit 1
+            fi
+            curl -fLsS --retry 3 "$asset_url" -o "_site/debs/$asset_name"
+          else
+            echo "The latest Poopterm release has no amd64 .deb asset yet; publishing the other packages."
+          fi
+
+          packages=(_site/debs/*.deb)
+          if (("${#packages[@]}" == 0)); then
+            echo "No .deb packages are available to publish" >&2
+            exit 1
+          fi
+
+          mkdir -p _site
+          dpkg-scanpackages --multiversion _site/debs /dev/null > _site/Packages
           gzip -9c _site/Packages > _site/Packages.gz
           cp index.html _site/index.html
           cp CydiaIcon.png _site/CydiaIcon.png
@@ -75,7 +108,7 @@ jobs:
             for file in Packages Packages.gz; do
               hash=$(sha256sum "$file" | cut -d' ' -f1)
               size=$(wc -c < "$file" | tr -d ' ')
-              printf ' %s %s %s\n' "$hash" "$size" "$file"
+              printf ' %s %s %s\\n' "$hash" "$size" "$file"
             done
           } > Release
 
