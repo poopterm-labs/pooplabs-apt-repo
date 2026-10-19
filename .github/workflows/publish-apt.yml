@@ -43,7 +43,7 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           packages=(debs/*.deb)
-          if (("${#packages[@]}" == 0)); then
+          if ((${#packages[@]} == 0)); then
             echo "No .deb packages found directly in debs/" >&2
             exit 1
           fi
@@ -75,7 +75,7 @@ jobs:
           fi
 
           packages=(_site/debs/*.deb)
-          if (("${#packages[@]}" == 0)); then
+          if ((${#packages[@]} == 0)); then
             echo "No .deb packages are available to publish" >&2
             exit 1
           fi
@@ -110,7 +110,7 @@ jobs:
               for file in Packages Packages.gz; do
                 hash=$(sha256sum "$file" | cut -d' ' -f1)
                 size=$(wc -c < "$file" | tr -d ' ')
-                printf ' %s %s %s\\n' "$hash" "$size" "$file"
+                printf ' %s %s %s\n' "$hash" "$size" "$file"
               done
             } > Release
           )
