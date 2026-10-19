@@ -57,13 +57,13 @@ jobs:
             -H 'X-GitHub-Api-Version: 2022-11-28' \
             https://api.github.com/repos/poopterm-labs/poopterm/releases/latest \
             -o "$release_json"
-          asset_name=$(jq -r '.assets[] | select(.name | startswith("poopterm_") and endswith("_amd64.deb")) | .name' "$release_json" | head -n 1)
+          asset_name=$(jq -r '[.assets[] | select((.name | startswith("poopterm_")) and (.name | endswith("_amd64.deb")))] | first | .name // empty' "$release_json")
           if [[ -n "$asset_name" ]]; then
             if [[ ! "$asset_name" =~ ^poopterm_[0-9A-Za-z.+~-]+_amd64\.deb$ ]]; then
               echo "Unexpected Poopterm package asset name: $asset_name" >&2
               exit 1
             fi
-            asset_url=$(jq -r --arg name "$asset_name" '.assets[] | select(.name == $name) | .browser_download_url' "$release_json" | head -n 1)
+            asset_url=$(jq -r --arg name "$asset_name" '.assets[] | select(.name == $name) | .browser_download_url' "$release_json")
             if [[ "$asset_url" != https://github.com/* ]]; then
               echo "Unexpected Poopterm package asset URL" >&2
               exit 1
@@ -80,21 +80,22 @@ jobs:
           fi
 
           mkdir -p _site
-          dpkg-scanpackages --multiversion _site/debs /dev/null > _site/Packages
-          gzip -9c _site/Packages > _site/Packages.gz
-          cp index.html _site/index.html
-          cp CydiaIcon.png _site/CydiaIcon.png
-          touch _site/.nojekyll
+          (
+            cd _site
+            dpkg-scanpackages --multiversion debs /dev/null > Packages
+            gzip -9c Packages > Packages.gz
+            cp ../index.html index.html
+            cp ../CydiaIcon.png CydiaIcon.png
+            touch .nojekyll
 
-          architectures=$(
-            for package in "${packages[@]}"; do
-              dpkg-deb -f "$package" Architecture
-            done | sort -u | paste -sd ' ' -
-          )
+            architectures=$(
+              for package in debs/*.deb; do
+                dpkg-deb -f "$package" Architecture
+              done | sort -u | paste -sd ' ' -
+            )
 
-          cd _site
-          {
-            cat <<EOF
+            {
+              cat <<EOF
           Origin: poopterm-labs
           Label: Poop Labs APT Repository
           Suite: stable
@@ -105,12 +106,13 @@ jobs:
           Date: $(date -Ru)
           SHA256:
           EOF
-            for file in Packages Packages.gz; do
-              hash=$(sha256sum "$file" | cut -d' ' -f1)
-              size=$(wc -c < "$file" | tr -d ' ')
-              printf ' %s %s %s\\n' "$hash" "$size" "$file"
-            done
-          } > Release
+              for file in Packages Packages.gz; do
+                hash=$(sha256sum "$file" | cut -d' ' -f1)
+                size=$(wc -c < "$file" | tr -d ' ')
+                printf ' %s %s %s\\n' "$hash" "$size" "$file"
+              done
+            } > Release
+          )
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
