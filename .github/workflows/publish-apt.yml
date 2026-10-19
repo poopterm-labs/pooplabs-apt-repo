@@ -22,7 +22,7 @@ jobs:
   publish:
     environment:
       name: github-pages
-      url: \${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -39,20 +39,20 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           packages=(debs/*.deb)
-          if (("\${#packages[@]}" == 0)); then
+          if ((${#packages[@]} == 0)); then
             echo "No .deb packages found directly in debs/" >&2
             exit 1
           fi
 
           mkdir -p _site/debs
-          cp "\${packages[@]}" _site/debs/
+          cp "${packages[@]}" _site/debs/
           dpkg-scanpackages --multiversion debs /dev/null > _site/Packages
           gzip -9c _site/Packages > _site/Packages.gz
           cp index.html _site/index.html
           touch _site/.nojekyll
 
           architectures=$(
-            for package in "\${packages[@]}"; do
+            for package in "${packages[@]}"; do
               dpkg-deb -f "$package" Architecture
             done | sort -u | paste -sd ' ' -
           )
