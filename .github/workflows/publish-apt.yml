@@ -1,4 +1,4 @@
-name: Publish Cydia APT feed
+name: Publish APT feed
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'debs/*.deb'
-      - 'debs/**/*.deb'
+      - '.github/workflows/publish-apt.yml'
   workflow_dispatch:
 
 permissions:
@@ -22,11 +22,16 @@ jobs:
   publish:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: \${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Install Debian package tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev
 
       - name: Generate APT indexes
         shell: bash
@@ -34,17 +39,23 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           packages=(debs/*.deb)
-          if ((${#packages[@]} == 0)); then
-            echo "No .deb packages found in debs/" >&2
+          if (("\${#packages[@]}" == 0)); then
+            echo "No .deb packages found directly in debs/" >&2
             exit 1
           fi
 
           mkdir -p _site/debs
-          cp "${packages[@]}" _site/debs/
-          dpkg-scanpackages --multiversion --arch iphoneos-arm debs /dev/null > _site/Packages
+          cp "\${packages[@]}" _site/debs/
+          dpkg-scanpackages --multiversion debs /dev/null > _site/Packages
           gzip -9c _site/Packages > _site/Packages.gz
           cp index.html _site/index.html
           touch _site/.nojekyll
+
+          architectures=$(
+            for package in "\${packages[@]}"; do
+              dpkg-deb -f "$package" Architecture
+            done | sort -u | paste -sd ' ' -
+          )
 
           cd _site
           {
@@ -53,9 +64,9 @@ jobs:
           Label: Poop Labs APT Repository
           Suite: stable
           Codename: stable
-          Architectures: iphoneos-arm
+          Architectures: $architectures
           Components: main
-          Description: Jailbreak packages maintained by poopterm-labs
+          Description: Debian and jailbreak packages maintained by poopterm-labs
           Date: $(date -Ru)
           SHA256:
           EOF
