@@ -1,0 +1,79 @@
+name: Publish Cydia APT feed
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'debs/*.deb'
+      - 'debs/**/*.deb'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Generate APT indexes
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          packages=(debs/*.deb)
+          if ((${#packages[@]} == 0)); then
+            echo "No .deb packages found in debs/" >&2
+            exit 1
+          fi
+
+          mkdir -p _site/debs
+          cp "${packages[@]}" _site/debs/
+          dpkg-scanpackages --multiversion --arch iphoneos-arm debs /dev/null > _site/Packages
+          gzip -9c _site/Packages > _site/Packages.gz
+          cp index.html _site/index.html
+          touch _site/.nojekyll
+
+          cd _site
+          {
+            cat <<EOF
+          Origin: poopterm-labs
+          Label: Poop Labs APT Repository
+          Suite: stable
+          Codename: stable
+          Architectures: iphoneos-arm
+          Components: main
+          Description: Jailbreak packages maintained by poopterm-labs
+          Date: $(date -Ru)
+          SHA256:
+          EOF
+            for file in Packages Packages.gz; do
+              hash=$(sha256sum "$file" | cut -d' ' -f1)
+              size=$(wc -c < "$file" | tr -d ' ')
+              printf ' %s %s %s\n' "$hash" "$size" "$file"
+            done
+          } > Release
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
