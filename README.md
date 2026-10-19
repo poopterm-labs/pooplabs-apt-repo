@@ -24,4 +24,6 @@ This is an unsigned personal repository. `trusted=yes` tells APT to accept its p
 
 Put each `.deb` directly in `debs/` on the `main` branch. The package's `Architecture` field is included in the generated feed, so the same repository can contain Debian packages for multiple architectures alongside `iphoneos-arm` jailbreak packages. GitHub Actions generates `Packages`, `Packages.gz`, and `Release`, then publishes them to GitHub Pages.
 
+The latest stable Poopterm `amd64` package is imported from its GitHub release automatically during the hourly feed refresh.
+
 Before the first deployment, open **Settings → Pages** and set the build and deployment source to **GitHub Actions**.
