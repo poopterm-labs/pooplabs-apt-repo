@@ -56,7 +56,7 @@ jobs:
           curl -fsSL \
             -H 'Accept: application/vnd.github+json' \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
-            https://api.github.com/repos/poopterm-labs/poopterm/releases/latest \
+            https://api.github.com/repos/poopware-laboratories/poopterm/releases/latest \
             -o "$release_json"
           asset_name=$(jq -r '[.assets[] | select((.name | startswith("poopterm_")) and (.name | endswith("_amd64.deb")))] | first | .name // empty' "$release_json")
           if [[ -n "$asset_name" ]]; then
@@ -97,13 +97,13 @@ jobs:
 
             {
               cat <<EOF
-          Origin: poopterm-labs
+          Origin: poopware-laboratories
           Label: Poop Labs APT Repository
           Suite: stable
           Codename: stable
           Architectures: $architectures
           Components: main
-          Description: Debian and jailbreak packages maintained by poopterm-labs
+          Description: Debian and jailbreak packages maintained by poopware-laboratories
           Date: $(date -Ru)
           SHA256:
           EOF
