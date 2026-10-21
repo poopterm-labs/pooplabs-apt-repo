@@ -1,12 +1,12 @@
 # Poop Labs APT Repository
 
-A flat APT package feed for Debian packages and jailbreak packages maintained by [poopterm-labs](https://github.com/poopterm-labs).
+A flat APT package feed for Debian packages and jailbreak packages maintained by [Poopware Laboratories]([https://github.com/poopterm-labs](https://github.com/poopware-laboratories)).
 
 ## Add to Cydia
 
 Add this source in Cydia under **Sources → Edit → Add**:
 
-`https://poopterm-labs.github.io/pooplabs-apt-repo/`
+`https://poopware-laboratories.github.io/pooplabs-apt-repo/`
 
 The iOS packages in this feed use the `iphoneos-arm` architecture.
 
@@ -15,7 +15,7 @@ The iOS packages in this feed use the `iphoneos-arm` architecture.
 Add this line to an APT source file (for example, `/etc/apt/sources.list.d/pooplabs.list`):
 
 ```text
-deb [trusted=yes] https://poopterm-labs.github.io/pooplabs-apt-repo/ ./
+deb [trusted=yes] https://poopware-laboratories.github.io/pooplabs-apt-repo/ ./
 ```
 
 This is an unsigned personal repository. `trusted=yes` tells APT to accept its packages without signature verification; use it only if you trust the repository and its maintainers. APT will choose packages compatible with the Debian machine's architecture.
